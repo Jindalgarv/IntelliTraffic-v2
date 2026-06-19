@@ -117,7 +117,7 @@ class YOLODetector:
 
     def detect(self, image: Image.Image) -> Dict[str, List[Dict]]:
         """Run detection and return categorized results."""
-        results = self.coco_model(image, conf=self.confidence, verbose=False)
+        results = self.coco_model(image, conf=self.confidence, iou=0.45, verbose=False)
         
         vehicles = []
         persons = []
@@ -596,6 +596,21 @@ class IntelliTrafficPipeline:
         violations.extend(check_red_light(
             detections["vehicles"], enhanced.height, traffic_light, stop_line_ratio
         ))
+
+        # Deduplicate violations (same type, overlapping bboxes)
+        unique_violations = []
+        for v in violations:
+            is_dup = False
+            for uv in unique_violations:
+                if v["violation_type"] == uv["violation_type"] and compute_iou(v["bbox"], uv["bbox"]) > 0.45:
+                    is_dup = True
+                    # Keep the one with higher confidence
+                    if v["confidence"] > uv["confidence"]:
+                        uv.update(v)
+                    break
+            if not is_dup:
+                unique_violations.append(v)
+        violations = unique_violations
 
         # 5. Plate OCR for violations
         plate_results = []
