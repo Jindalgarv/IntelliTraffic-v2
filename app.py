@@ -136,6 +136,7 @@ st.markdown("""
         padding: 0.75rem;
         font-size: 0.85rem;
         margin-top: 0.5rem;
+        color: #166534;
     }
     .gemini-box {
         background: #eff6ff;
@@ -144,6 +145,7 @@ st.markdown("""
         padding: 0.75rem;
         font-size: 0.85rem;
         margin-top: 0.5rem;
+        color: #1e3a8a;
     }
 
     /* Badges */
