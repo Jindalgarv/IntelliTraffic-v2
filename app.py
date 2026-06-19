@@ -394,6 +394,7 @@ with tab_detect:
                     st.session_state["img_path"] = str(img_path)
                     st.session_state["location"] = location
                     st.session_state["gps"] = gps
+                    st.session_state["saved_violations"] = set()
                     st.rerun()
 
             # ── Show results ──
@@ -501,48 +502,48 @@ with tab_detect:
                                                 unsafe_allow_html=True,
                                             )
 
-                    # Save to database
-                    st.divider()
-                    if st.button("💾 Save All Violations to Database", type="primary", use_container_width=True):
-                        saved = 0
-                        for v in violations:
-                            vid = generate_vid()
-                            # Save annotated image
-                            ann_path = ANNOTATED_DIR / f"{vid}.jpg"
-                            annotated.save(str(ann_path))
-                            # Save crop
-                            try:
-                                vc = crop_violation(result["enhanced_image"], v["bbox"])
-                                crop_path = CROPS_DIR / f"{vid}_crop.jpg"
-                                vc.save(str(crop_path))
-                            except Exception:
-                                crop_path = ""
+                            # Individual Save button
+                            st.divider()
+                            if i not in st.session_state.get("saved_violations", set()):
+                                if st.button(f"💾 Save this Violation", key=f"save_viol_{i}"):
+                                    vid = generate_vid()
+                                    ann_path = ANNOTATED_DIR / f"{vid}.jpg"
+                                    annotated.save(str(ann_path))
+                                    try:
+                                        vc = crop_violation(result["enhanced_image"], v["bbox"])
+                                        crop_path = CROPS_DIR / f"{vid}_crop.jpg"
+                                        vc.save(str(crop_path))
+                                    except Exception:
+                                        crop_path = ""
 
-                            insert_violation(
-                                violation_id=vid,
-                                image_filename=Path(st.session_state.get("img_path", "")).name,
-                                vehicle_type=v.get("vehicle_type", "unknown"),
-                                violation_type=v["violation_type"],
-                                violations_json=[v["violation_type"]],
-                                confidence=v.get("confidence", 0),
-                                ocr_plate_number=v.get("license_plate", "N/A"),
-                                ocr_confidence=v.get("ocr_confidence"),
-                                ocr_engine=v.get("ocr_engine", ""),
-                                speed_mph=None,
-                                severity=v.get("severity", 5),
-                                details=v.get("details", ""),
-                                original_image_path=st.session_state.get("img_path", ""),
-                                annotated_image_path=str(ann_path),
-                                evidence_path=str(crop_path),
-                                image_hash=st.session_state.get("img_hash", ""),
-                                location_name=st.session_state.get("location", ""),
-                                gps_coordinates=st.session_state.get("gps", ""),
-                                review_status="Pending Review",
-                                db_path=DB_PATH,
-                            )
-                            saved += 1
-                        st.success(f"Saved {saved} violation(s) to database.")
-                        st.rerun()
+                                    insert_violation(
+                                        violation_id=vid,
+                                        image_filename=Path(st.session_state.get("img_path", "")).name,
+                                        vehicle_type=v.get("vehicle_type", "unknown"),
+                                        violation_type=v["violation_type"],
+                                        violations_json=[v["violation_type"]],
+                                        confidence=v.get("confidence", 0),
+                                        ocr_plate_number=v.get("license_plate", "N/A"),
+                                        ocr_confidence=v.get("ocr_confidence"),
+                                        ocr_engine=v.get("ocr_engine", ""),
+                                        speed_mph=None,
+                                        severity=v.get("severity", 5),
+                                        details=v.get("details", ""),
+                                        original_image_path=st.session_state.get("img_path", ""),
+                                        annotated_image_path=str(ann_path),
+                                        evidence_path=str(crop_path),
+                                        image_hash=st.session_state.get("img_hash", ""),
+                                        location_name=st.session_state.get("location", ""),
+                                        gps_coordinates=st.session_state.get("gps", ""),
+                                        review_status="Pending Review",
+                                        db_path=DB_PATH,
+                                    )
+                                    if "saved_violations" not in st.session_state:
+                                        st.session_state["saved_violations"] = set()
+                                    st.session_state["saved_violations"].add(i)
+                                    st.rerun()
+                            else:
+                                st.success("✅ Saved to database")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

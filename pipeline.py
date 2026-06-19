@@ -53,12 +53,16 @@ def bbox_area(bbox: List[float]) -> float:
     return max(0, x2 - x1) * max(0, y2 - y1)
 
 
-def compute_iou(a: List[float], b: List[float]) -> float:
+def compute_intersection(a: List[float], b: List[float]) -> float:
     ix1 = max(a[0], b[0])
     iy1 = max(a[1], b[1])
     ix2 = min(a[2], b[2])
     iy2 = min(a[3], b[3])
-    inter = max(0, ix2 - ix1) * max(0, iy2 - iy1)
+    return max(0, ix2 - ix1) * max(0, iy2 - iy1)
+
+
+def compute_iou(a: List[float], b: List[float]) -> float:
+    inter = compute_intersection(a, b)
     union = bbox_area(a) + bbox_area(b) - inter
     return inter / union if union > 0 else 0.0
 
@@ -202,21 +206,26 @@ class YOLODetector:
 # ── Violation Rules ──────────────────────────────────────────────────────────
 
 def _persons_on_motorcycle(moto_bbox: List[float], persons: List[Dict]) -> List[Dict]:
-    """Find persons associated with a motorcycle using expanded bbox."""
-    expanded = expand_bbox(moto_bbox, 1.8, 2.2)  # Wide expansion for riders
-    # Shift expansion upward (riders are above the bike)
-    h = moto_bbox[3] - moto_bbox[1]
-    expanded[1] -= h * 0.8
-    
+    """Find persons riding a motorcycle using strict intersection logic."""
     associated = []
+    mx1, my1, mx2, my2 = moto_bbox
+    mw = mx2 - mx1
+    
     for p in persons:
-        pc = bbox_center(p["bbox"])
-        if point_in_bbox(pc, expanded):
+        p_area = bbox_area(p["bbox"])
+        if p_area == 0:
+            continue
+            
+        inter = compute_intersection(moto_bbox, p["bbox"])
+        inter_ratio = inter / p_area
+        
+        pcx, pcy = bbox_center(p["bbox"])
+        
+        # A rider typically has > 15% of their bbox overlapping with the bike
+        # and their horizontal center should be near the bike
+        if inter_ratio > 0.15 and (mx1 - mw*0.25) <= pcx <= (mx2 + mw*0.25):
             associated.append(p)
-        elif distance(moto_bbox, p["bbox"]) < max(
-            moto_bbox[2] - moto_bbox[0], moto_bbox[3] - moto_bbox[1]
-        ) * 1.3:
-            associated.append(p)
+            
     return associated
 
 
