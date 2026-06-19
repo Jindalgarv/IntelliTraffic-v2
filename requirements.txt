@@ -1,0 +1,29 @@
+# IntelliTraffic AI v2 — Dependencies
+streamlit>=1.35.0
+pillow>=10.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# OpenCV (headless for cloud compatibility)
+opencv-python-headless>=4.8.0
+
+# YOLO detection
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+huggingface_hub>=0.20.0
+
+# OCR
+easyocr>=1.7.0
+
+# PDF E-Challan generation
+reportlab>=4.0.0
+
+# ByteTrack tracking dependency
+lap>=0.5.12
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Gemini Vision API (optional - for Second Opinion feature)
+google-genai>=1.0.0
